@@ -1,26 +1,50 @@
 
 /*
-    Как быть с засписями, у которых история одинакова, но значения разные?
+    excludeDuplicatesInA - В случае дублирования записей по всему атрибутному составу, одна запись остается. (id: 3)
+                           Если записи одинаковые (id, sd, ed), а значения (val) разные, то такие записи
+                                исключаются из общей выборки. (id: 4)
+    sameDatesInA - 
+    postSameDatesInA - 
+    findHolesInA - 
+    fixHolesInA - 
+    fixIntInA - 
 */
 
-with a as (
-    select 1 as id, to_date('01.01.2018', 'dd.mm.yyyy') as sd, to_date('10.01.2018', 'dd.mm.yyyy') as ed, 11 as val union all
+with a(id, sd, ed, val) as (
+    select 1, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('10.01.2018', 'dd.mm.yyyy'), 11 union all
     select 1, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('08.01.2018', 'dd.mm.yyyy'), 10 union all
-    select 1, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('05.01.2018', 'dd.mm.yyyy'), 9 union all
+    select 1, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('05.01.2018', 'dd.mm.yyyy'), 9  union all
     select 1, to_date('13.01.2018', 'dd.mm.yyyy'), to_date('25.01.2018', 'dd.mm.yyyy'), 12 union all
     select 1, to_date('20.01.2018', 'dd.mm.yyyy'), to_date('25.01.2018', 'dd.mm.yyyy'), 14 union all
     select 1, to_date('15.01.2018', 'dd.mm.yyyy'), to_date('25.01.2018', 'dd.mm.yyyy'), 13 union all
     select 1, to_date('02.02.2018', 'dd.mm.yyyy'), to_date('13.02.2018', 'dd.mm.yyyy'), 15 union all
     select 1, to_date('08.02.2018', 'dd.mm.yyyy'), to_date('26.02.2018', 'dd.mm.yyyy'), 16 union all
     select 1, to_date('01.03.2018', 'dd.mm.yyyy'), to_date('31.12.9999', 'dd.mm.yyyy'), 17 union all
-    select 2, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('31.12.9999', 'dd.mm.yyyy'), 20
+    select 2, to_date('01.01.2018', 'dd.mm.yyyy'), to_date('31.12.9999', 'dd.mm.yyyy'), 20 union all
+    select 3, to_date('01.05.2018', 'dd.mm.yyyy'), to_date('10.05.2018', 'dd.mm.yyyy'), 30 union all
+    select 3, to_date('01.05.2018', 'dd.mm.yyyy'), to_date('10.05.2018', 'dd.mm.yyyy'), 30 union all
+    select 4, to_date('01.05.2018', 'dd.mm.yyyy'), to_date('10.05.2018', 'dd.mm.yyyy'), 40 union all
+    select 4, to_date('01.05.2018', 'dd.mm.yyyy'), to_date('10.05.2018', 'dd.mm.yyyy'), 41 union all
+    select 4, to_date('01.05.2018', 'dd.mm.yyyy'), to_date('10.05.2018', 'dd.mm.yyyy'), 40
+), excludeDuplicatesInA as (
+    select distinct *
+      from a withoutDups
+     where not exists (
+        select 1
+          from a withDups
+         where withoutDups.id = withDups.id
+           and withoutDups.sd = withDups.sd
+           and withoutDups.ed = withDups.ed
+         group by id, sd, ed
+        having count(distinct val) > 1        
+     )
 ), sameDatesInA as (
     select id, sd, ed, val,
            lead(sd) over (partition by id order by sd, ed desc) as nsd,
            lag(ed)  over (partition by id order by sd, ed asc)  as ped,
            lead(sd) over (partition by id order by sd, ed desc) - sd as same_sd,
            lead(ed) over (partition by id order by sd, ed asc)  - ed as same_ed
-      from a
+      from excludeDuplicatesInA
 ), postSameDatesInA as (
     select id, nsd, val,
            case when same_sd = 0 then ped + 1 else sd end as sd, 
