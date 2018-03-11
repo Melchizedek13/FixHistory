@@ -50,7 +50,8 @@ with a(id, sd, ed, val) as (
 ), excludeDuplicatesInA as (
     select distinct *
       from a withoutDups
-     where not exists (
+     where sd < ed
+       and not exists (
         select 1
           from a withDups
          where withoutDups.id = withDups.id
@@ -90,4 +91,6 @@ with a(id, sd, ed, val) as (
          to_char(sd, 'dd.mm.yyyy') as sd,
          to_char(ed, 'dd.mm.yyyy') as ed,
          val
-    from fixIntInA;
+    from fixIntInA res
+   order by id, res.sd, res.ed 
+  ;
