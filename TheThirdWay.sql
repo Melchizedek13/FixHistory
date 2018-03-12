@@ -1,3 +1,9 @@
+
+/*
+    Могут быть дыры, интервалы не могут пересекаться в данных одной таблицы. 
+    Пересечения интервалов допустимы только между таблицами.
+*/
+
 with t1(id, sd, ed, x) as (
    select 1, to_timestamp('2018-01-01 00:00:00', 'yyyy-mm-dd hh24:mi:ss'), to_timestamp('2018-01-03 00:00:00', 'yyyy-mm-dd hh24:mi:ss'), 1 union all
    select 1, to_timestamp('2018-01-03 00:00:01', 'yyyy-mm-dd hh24:mi:ss'), to_timestamp('2018-01-05 00:00:00', 'yyyy-mm-dd hh24:mi:ss'), 2 union all
