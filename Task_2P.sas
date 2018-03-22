@@ -43,79 +43,79 @@ quit;
 %let rn_id = 1; ** particular case: if only one row by key exists in one table;
 
 data C (keep = abon_id tariff_plan type fd td name sex);
-	set A(in=ain rename=(fd=sfd td=std tariff_plan=stariff_plan type=stype))
-	    B(in=bin rename=(fd=sfd td=std name=sname sex=ssex));
-	by abon_id sfd;
-	
-	retain rn_id p_tariff_plan p_type p_fd p_name p_sex;
+    set A(in=ain rename=(fd=sfd td=std tariff_plan=stariff_plan type=stype))
+        B(in=bin rename=(fd=sfd td=std name=sname sex=ssex));
+    by abon_id sfd;
+
+    retain rn_id p_tariff_plan p_type p_fd p_name p_sex;
     Format fd DDMMYYP10.;
-	Format p_fd DDMMYYP10.;
-	Format td DDMMYYP10.;
-	
-	if (first.abon_id) then do;
-		rn_id = 1;
-		p_fd = .;
-		p_name = sname;
-		p_sex = ssex;
-		p_tariff_plan = stariff_plan;
-		p_type = stype;
-	end;
-	else
-		rn_id + 1;
-	
-	if (rn_id = 1 and last.abon_id) then do;
-		tariff_plan = stariff_plan;
-		type = stype;
-		name = sname;
-		sex = ssex;
+    Format p_fd DDMMYYP10.;
+    Format td DDMMYYP10.;
+
+    if (first.abon_id) then do;
+        rn_id = 1;
+        p_fd = .;
+        p_name = sname;
+        p_sex = ssex;
+        p_tariff_plan = stariff_plan;
+        p_type = stype;
+    end;
+    else
+        rn_id + 1;
+
+    if (rn_id = 1 and last.abon_id) then do;
+        tariff_plan = stariff_plan;
+        type = stype;
+        name = sname;
+        sex = ssex;
         fd = sfd;
-		td = &c_plusInfinity;
-		output C;
-	end;
-	
-	if (rn_id > 1) then do;
-	
-		name = coalescec(p_name, '.');
-		sex = coalescec(p_sex, '.');
-		tariff_plan = p_tariff_plan;
-		type = p_type;
-			
-		fd = p_fd;
+        td = &c_plusInfinity;
+        output C;
+    end;
+
+    if (rn_id > 1) then do;
+
+        name = coalescec(p_name, '.');
+        sex = coalescec(p_sex, '.');
+        tariff_plan = p_tariff_plan;
+        type = p_type;
+            
+        fd = p_fd;
         td = sfd - 1;
-        	
-		if not (p_fd = sfd) then
-			output C;
-		
-		if last.abon_id then do;
-			fd = sfd;
-			td = &c_plusInfinity;
-			name = coalescec(sname, p_name);
-	    	sex = coalescec(ssex, p_sex);
-			tariff_plan = coalesce(stariff_plan, p_tariff_plan);
-			type = coalesce(stype, p_type);
-			output C;
-		end;
-		
-	end;
-	
-	if ain then do;
-		p_tariff_plan = stariff_plan;
-		p_type = stype;
-	end;
-	
-	if bin then do;
-		p_name = sname;
-		p_sex = ssex;
-	end;
-	
-	p_fd = sfd;
+            
+        if not (p_fd = sfd) then
+            output C;
+        
+        if last.abon_id then do;
+            fd = sfd;
+            td = &c_plusInfinity;
+            name = coalescec(sname, p_name);
+            sex = coalescec(ssex, p_sex);
+            tariff_plan = coalesce(stariff_plan, p_tariff_plan);
+            type = coalesce(stype, p_type);
+            output C;
+        end;
+        
+    end;
+
+    if ain then do;
+        p_tariff_plan = stariff_plan;
+        p_type = stype;
+    end;
+
+    if bin then do;
+        p_name = sname;
+        p_sex = ssex;
+    end;
+
+    p_fd = sfd;
 run;
 
 data C;
-	retain abon_id tariff_plan type name sex fd td;
-	set C;
+    retain abon_id tariff_plan type name sex fd td;
+    set C;
 run;
 
 proc print data=C noobs;
-run;	
-	
+run;
+
