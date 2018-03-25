@@ -1,6 +1,8 @@
 
-Options macrogen symbolgen mlogic mprint mfile;
-filename mprint '/folders/myfolders/for_debug/1.txt';
+/*
+    Options macrogen symbolgen mlogic mprint mfile;
+    filename mprint '/folders/myfolders/for_debug/1.txt';
+*/
 
 %macro mFdTdJoin(mvOutTable=, mvTableA=, mvTableB=, mvKeyVars=, mvFdVar=, mvTdVar=);
     %let workLib = Work;
@@ -21,6 +23,22 @@ filename mprint '/folders/myfolders/for_debug/1.txt';
           from dictionary.columns
          where memname in ("%upcase(&mvTableA)", "%upcase(&mvTableB)")
         ;
+    quit;
+    
+    proc sql noprint;
+        select 
+          case when type='char' then trim(name)||'=coalescec(c'||trim(name)||", '.'"||')' 
+               else trim(name)||'=coalesce(c'||trim(name)||', .)'
+           end,
+          case when type='char' then trim(name)||'=coalescec(c'||trim(name)||', '||trim(name)||')'
+               else trim(name)||'=coalesce(c'||trim(name)||', '||trim(name)||')'
+           end
+          into :mvFirstBlock separated by '; ',
+               :mvLastBlock separated by '; '
+          from dictionary.columns
+         where memname in ("%upcase(&mvTableA)", "%upcase(&mvTableB)")
+           and libname = "%upcase(&workLib)"
+           and name not in ("&mvKeyVars", '&mvFdVar', '&mvTdVar');
     quit;
 
     proc sql noprint;
@@ -83,14 +101,7 @@ filename mprint '/folders/myfolders/for_debug/1.txt';
 
         if first.&mvKeyVars then do;
             p_fd = .;
-            %do i=1 %to %sysfunc(countw(&retain_header));
-                %let cn=%scan(&retain_header,&i);
-                
-                if missing(c&cn) then
-                    call missing(&cn);
-                else
-                    &cn = c&cn;
-            %end;
+            &mvFirstBlock;
         end;
         else do;
             &mvFdVar = p_fd;
@@ -103,14 +114,7 @@ filename mprint '/folders/myfolders/for_debug/1.txt';
         if last.&mvKeyVars then do;
             &mvFdVar    = c&mvFdVar;
             &mvTdVar    = &c_plusInfinity;
-            %do i=1 %to %sysfunc(countw(&retain_header));
-                %let cn=%scan(&retain_header,&i);
-                
-                if missing(c&cn) then
-                    &cn = &cn;
-                else
-                    &cn = c&cn;
-            %end;
+            &mvFirstBlock;
             output;
         end;
 
