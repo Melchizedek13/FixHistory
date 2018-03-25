@@ -22,6 +22,7 @@
           into :mvTabCHeader separated by " "
           from dictionary.columns
          where memname in ("%upcase(&mvTableA)", "%upcase(&mvTableB)")
+           and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar")
         ;
     quit;
     
@@ -38,62 +39,42 @@
           from dictionary.columns
          where memname in ("%upcase(&mvTableA)", "%upcase(&mvTableB)")
            and libname = "%upcase(&workLib)"
-           and name not in ("&mvKeyVars", '&mvFdVar', '&mvTdVar');
+           and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar")
+        ;
     quit;
 
     proc sql noprint;
-        select name,
-               trim(name)||'=c'||name
-          into :mvTabAHeader       separated by " ",
-               :mvTabARenameHeader separated by " "
+        select trim(name)||'=c'||trim(name),
+               trim(name)||'=c'||trim(name)
+          into :mvTabAHeader       separated by '; ',
+               :mvTabARenameHeader separated by ' '
           from dictionary.columns
          where memname = "%upcase(&mvTableA)"
            and libname = "%upcase(&workLib)"
-           and name <> "&mvKeyVars"
+           and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar");
         ;
     quit;
 
     proc sql noprint;
-        select name,
-               trim(name)||'=c'||name
-          into :mvTabBHeader       separated by " ",
-               :mvTabBRenameHeader separated by " "
+        select trim(name)||'=c'||trim(name),
+               trim(name)||'=c'||trim(name)
+          into :mvTabBHeader       separated by '; ',
+               :mvTabBRenameHeader separated by ' '
           from dictionary.columns
          where memname = "%upcase(&mvTableB)"
            and libname = "%upcase(&workLib)"
-           and name <> "&mvKeyVars"
+           and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar");
         ;
     quit;
 
-    %let retain_header=;
-    %let initListFromTabA=;
-    %let initListFromTabB=;
     %let c_plusInfinity='01Jan2040'd;
 
-    %do i=1 %to %sysfunc(countw(&mvTabCHeader));
-        %let cn=%scan(&mvTabCHeader,&i);
-        %if not (&cn = &mvKeyVars or &cn = &mvFdVar or &cn = &mvTdVar) %then
-            %let retain_header = &retain_header &cn;
-    %end;
-
-    %do i=1 %to %sysfunc(countw(&mvTabAHeader));
-        %let cn=%scan(&mvTabAHeader,&i);
-        %if not (&cn = &mvFdVar or &cn = &mvTdVar) %then
-            %let initListFromTabA = &initListFromTabA &cn;
-    %end;
-
-    %do i=1 %to %sysfunc(countw(&mvTabBHeader));
-        %let cn=%scan(&mvTabBHeader,&i);
-        %if not (&cn = &mvFdVar or &cn = &mvTdVar) %then
-            %let initListFromTabB = &initListFromTabB &cn;
-    %end;
-
-    Data &mvOutTable(keep=&mvTabCHeader);
-        set &mvTableA(in=ain rename=(&mvTabARenameHeader))
-            &mvTableB(in=bin rename=(&mvTabBRenameHeader));
+    Data &mvOutTable(keep=&mvTabCHeader &mvKeyVars &mvFdVar &mvTdVar);
+        set &mvTableA(in=ain rename=(&mvTabARenameHeader &mvFdVar=c&mvFdVar &mvTdVar=c&mvTdVar))
+            &mvTableB(in=bin rename=(&mvTabBRenameHeader &mvFdVar=c&mvFdVar &mvTdVar=c&mvTdVar));
          by &mvKeyVars c&mvFdVar;
 
-        retain p_fd &retain_header;
+        retain p_fd &mvTabCHeader;
 
         Format &mvFdVar  DDMMYYP10.;
         Format p_fd      DDMMYYP10.;
@@ -114,22 +95,16 @@
         if last.&mvKeyVars then do;
             &mvFdVar    = c&mvFdVar;
             &mvTdVar    = &c_plusInfinity;
-            &mvFirstBlock;
+            &mvLastBlock;
             output;
         end;
 
         if ain then do;
-            %do i=1 %to %sysfunc(countw(&initListFromTabA));
-                %let cn=%scan(&initListFromTabA,&i);
-                    &cn = c&cn;
-            %end;
+            &mvTabAHeader;
         end;
 
         if bin then do;
-            %do i=1 %to %sysfunc(countw(&initListFromTabB));
-                %let cn=%scan(&initListFromTabB,&i);
-                    &cn = c&cn;
-            %end;
+            &mvTabBHeader;
         end;
 
         p_fd = c&mvFdVar;
