@@ -24,9 +24,7 @@
          where memname in ("%upcase(&mvTableA)", "%upcase(&mvTableB)")
            and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar")
         ;
-    quit;
-    
-    proc sql noprint;
+
         select 
           case when type='char' then trim(name)||'=coalescec(c'||trim(name)||", '.'"||')' 
                else trim(name)||'=coalesce(c'||trim(name)||', .)'
@@ -41,9 +39,7 @@
            and libname = "%upcase(&workLib)"
            and name not in ("&mvKeyVars", "&mvFdVar", "&mvTdVar")
         ;
-    quit;
 
-    proc sql noprint;
         select trim(name)||'=c'||trim(name),
                trim(name)||'=c'||trim(name)
           into :mvTabAHeader       separated by '; ',
@@ -116,5 +112,5 @@
 
 %mFdTdJoin(mvOutTable=C, mvTableA=A, mvTableB=B, mvKeyVars=abon_id, mvFdVar=fd, mvTdVar=td);
 
-proc print data=C;
+proc print data=C noobs;
 run;
