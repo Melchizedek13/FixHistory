@@ -1,5 +1,5 @@
 -- https://docs.databricks.com/_static/notebooks/merge-in-scd-type-2.html
--- https://dbfiddle.uk/?rdbms=oracle_18&fiddle=2658c30d1b41342bff7197f1b37f4cf0
+-- https://dbfiddle.uk/?rdbms=oracle_18&fiddle=9911c2e54a573069de7881625ed933ca
 
 -- truncate table src_tbl;
 -- truncate table trg_tbl;
